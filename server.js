@@ -1,11 +1,24 @@
 const express = require('express');
 const { db, Project, Task } = require('./database/setup');
+const session = require('express-session');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
+// Session middleware
+app.use(session({
+    secret: 'super-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        maxAge: 1000 * 60 * 60,   // 1 hour
+        secure: false
+    }
+}));
+
 
 // Test database connection
 async function testConnection() {
