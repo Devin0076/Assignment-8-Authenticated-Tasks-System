@@ -72,6 +72,43 @@ app.post('/api/register', async (req, res) => {
 });
 
 
+// USER LOGIN
+app.post('/api/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Validate input
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
+
+        // Look up user by email
+        const user = await User.findOne({ where: { email } });
+
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
+        // Compare passwords
+        const passwordMatch = await bcrypt.compare(password, user.password);
+
+        if (!passwordMatch) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
+        // Create session
+        req.session.userId = user.id;
+
+        res.json({ message: 'Login successful' });
+
+    } catch (error) {
+        console.error('Error logging in:', error);
+        res.status(500).json({ error: 'Failed to log in' });
+    }
+});
+
+
+
 // PROJECT ROUTES
 
 // GET /api/projects - Get all projects
