@@ -1,6 +1,8 @@
 const express = require('express');
-const { db, Project, Task } = require('./database/setup');
+const { db, Project, Task, User } = require('./database/setup');
 const session = require('express-session');
+const bcrypt = require('bcryptjs');
+
 
 
 const app = express();
@@ -31,6 +33,44 @@ async function testConnection() {
 }
 
 testConnection();
+
+// USER REGISTRATION
+app.post('/api/register', async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+
+        // Validate required fields
+        if (!username || !email || !password) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        // Check if email already exists
+        const existingUser = await User.findOne({ where: { email } });
+        if (existingUser) {
+            return res.status(400).json({ error: 'Email is already registered' });
+        }
+
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create user
+        const newUser = await User.create({
+            username,
+            email,
+            password: hashedPassword
+        });
+
+        res.status(201).json({
+            message: 'User registered successfully',
+            userId: newUser.id
+        });
+
+    } catch (error) {
+        console.error('Error registering user:', error);
+        res.status(500).json({ error: 'Failed to register user' });
+    }
+});
+
 
 // PROJECT ROUTES
 
