@@ -107,6 +107,17 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// AUTHENTICATION MIDDLEWARE
+function requireAuth(req, res, next) {
+    if (!req.session.userId) {
+        return res.status(401).json({ error: 'You must be logged in to access this resource' });
+    }
+
+    // Attach user ID so routes know which user is authenticated
+    req.userId = req.session.userId;
+
+    next();
+}
 
 
 // PROJECT ROUTES
