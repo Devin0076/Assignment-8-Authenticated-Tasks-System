@@ -120,6 +120,20 @@ function requireAuth(req, res, next) {
 }
 
 
+// USER LOGOUT
+app.post('/api/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            console.error('Logout error:', err);
+            return res.status(500).json({ error: 'Failed to log out' });
+        }
+
+        res.json({ message: 'Logout successful' });
+    });
+});
+
+
+
 // PROJECT ROUTES
 
 // GET /api/projects - Get all projects for the logged-in user
