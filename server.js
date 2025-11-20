@@ -122,10 +122,13 @@ function requireAuth(req, res, next) {
 
 // PROJECT ROUTES
 
-// GET /api/projects - Get all projects
-app.get('/api/projects', async (req, res) => {
+// GET /api/projects - Get all projects for the logged-in user
+app.get('/api/projects', requireAuth, async (req, res) => {
     try {
-        const projects = await Project.findAll();
+        const projects = await Project.findAll({
+            where: { userId: req.userId }
+        });
+
         res.json(projects);
     } catch (error) {
         console.error('Error fetching projects:', error);
@@ -133,15 +136,20 @@ app.get('/api/projects', async (req, res) => {
     }
 });
 
-// GET /api/projects/:id - Get project by ID
-app.get('/api/projects/:id', async (req, res) => {
+// GET /api/projects/:id - Get project by ID for logged-in user
+app.get('/api/projects/:id', requireAuth, async (req, res) => {
     try {
-        const project = await Project.findByPk(req.params.id);
-        
+        const project = await Project.findOne({
+            where: {
+                id: req.params.id,
+                userId: req.userId  
+            }
+        });
+
         if (!project) {
-            return res.status(404).json({ error: 'Project not found' });
+            return res.status(404).json({ error: 'Project not found or access denied' });
         }
-        
+
         res.json(project);
     } catch (error) {
         console.error('Error fetching project:', error);
@@ -149,18 +157,20 @@ app.get('/api/projects/:id', async (req, res) => {
     }
 });
 
-// POST /api/projects - Create new project
-app.post('/api/projects', async (req, res) => {
+
+// POST /api/projects - Create new project for logged-in user
+app.post('/api/projects', requireAuth, async (req, res) => {
     try {
         const { name, description, status, dueDate } = req.body;
-        
+
         const newProject = await Project.create({
             name,
             description,
             status,
-            dueDate
+            dueDate,
+            userId: req.userId 
         });
-        
+
         res.status(201).json(newProject);
     } catch (error) {
         console.error('Error creating project:', error);
@@ -168,27 +178,32 @@ app.post('/api/projects', async (req, res) => {
     }
 });
 
-// PUT /api/projects/:id - Update existing project
-app.put('/api/projects/:id', async (req, res) => {
+// PUT /api/projects/:id - Update existing project for logged-in user
+app.put('/api/projects/:id', requireAuth, async (req, res) => {
     try {
-        const { name, description, status, dueDate } = req.body;
-        
-        const [updatedRowsCount] = await Project.update(
-            { name, description, status, dueDate },
-            { where: { id: req.params.id } }
-        );
-        
-        if (updatedRowsCount === 0) {
-            return res.status(404).json({ error: 'Project not found' });
+        const project = await Project.findOne({
+            where: {
+                id: req.params.id,
+                userId: req.userId
+            }
+        });
+
+        if (!project) {
+            return res.status(404).json({ error: 'Project not found or access denied' });
         }
-        
-        const updatedProject = await Project.findByPk(req.params.id);
-        res.json(updatedProject);
+
+        const { name, description, status, dueDate } = req.body;
+
+        await project.update({ name, description, status, dueDate });
+
+        res.json(project);
+
     } catch (error) {
         console.error('Error updating project:', error);
         res.status(500).json({ error: 'Failed to update project' });
     }
 });
+
 
 // DELETE /api/projects/:id - Delete project
 app.delete('/api/projects/:id', async (req, res) => {
@@ -280,23 +295,30 @@ app.put('/api/tasks/:id', async (req, res) => {
     }
 });
 
-// DELETE /api/tasks/:id - Delete task
-app.delete('/api/tasks/:id', async (req, res) => {
+// DELETE /api/projects/:id - Delete project for logged-in user
+app.delete('/api/projects/:id', requireAuth, async (req, res) => {
     try {
-        const deletedRowsCount = await Task.destroy({
-        where: { id: req.params.id }
+        const project = await Project.findOne({
+            where: {
+                id: req.params.id,
+                userId: req.userId
+            }
         });
-        
-        if (deletedRowsCount === 0) {
-            return res.status(404).json({ error: 'Task not found' });
+
+        if (!project) {
+            return res.status(404).json({ error: 'Project not found or access denied' });
         }
-        
-        res.json({ message: 'Task deleted successfully' });
+
+        await project.destroy();
+
+        res.json({ message: 'Project deleted successfully' });
+
     } catch (error) {
-        console.error('Error deleting task:', error);
-        res.status(500).json({ error: 'Failed to delete task' });
+        console.error('Error deleting project:', error);
+        res.status(500).json({ error: 'Failed to delete project' });
     }
 });
+
 
 // Start server
 app.listen(PORT, () => {
